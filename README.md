@@ -23,6 +23,34 @@ Open any `.html` file directly in your browser — no build step, no install.
 
 Each app stores its own state in browser `localStorage`. No accounts, no server.
 
+## Cloud sync setup (Supabase)
+
+Cross-device sync (goals, stack, water, finance, gym state) relies on a
+`public.app_state` table with anon RLS policies for select/insert/update.
+
+Progress photos (`gym.html`) sync via Supabase Storage instead of being
+crammed into that JSONB row. Run this once in the Supabase SQL editor to
+create the bucket and its access policies:
+
+```sql
+insert into storage.buckets (id, name, public)
+values ('progress-photos', 'progress-photos', true)
+on conflict (id) do update set public = true;
+
+drop policy if exists "anon upload progress-photos" on storage.objects;
+drop policy if exists "anon read progress-photos"   on storage.objects;
+drop policy if exists "anon delete progress-photos" on storage.objects;
+
+create policy "anon upload progress-photos"
+  on storage.objects for insert with check (bucket_id = 'progress-photos');
+
+create policy "anon read progress-photos"
+  on storage.objects for select using (bucket_id = 'progress-photos');
+
+create policy "anon delete progress-photos"
+  on storage.objects for delete using (bucket_id = 'progress-photos');
+```
+
 ## Building from scratch
 
 [BUILD_DASHBOARD.md](BUILD_DASHBOARD.md) is the prompt I gave Claude to generate `index.html` — paste it into Claude if you want to rebuild that page yourself.
